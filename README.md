@@ -1,1 +1,1 @@
-# score-collector
+# score-agent
