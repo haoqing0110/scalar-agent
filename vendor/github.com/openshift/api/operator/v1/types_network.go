@@ -10,10 +10,7 @@ import (
 
 // Network describes the cluster's desired network configuration. It is
 // consumed by the cluster-network-operator.
-//
-// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 // +k8s:openapi-gen=true
-// +openshift:compatibility-gen:level=1
 type Network struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -31,9 +28,6 @@ type NetworkStatus struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // NetworkList contains a list of Network configurations
-//
-// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
-// +openshift:compatibility-gen:level=1
 type NetworkList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -101,20 +95,8 @@ type NetworkSpec struct {
 	// by using protocols NetFlow, SFlow or IPFIX. Currently only supported on OVN-Kubernetes plugin.
 	// If unset, flows will not be exported to any collector.
 	// +optional
+	// +kubebuilder:validation:MinProperties=1
 	ExportNetworkFlows *ExportNetworkFlows `json:"exportNetworkFlows,omitempty"`
-
-	// migration enables and configures the cluster network migration.
-	// Setting this to the target network type to allow changing the default network.
-	// If unset, the operation of changing cluster default network plugin will be rejected.
-	// +optional
-	Migration *NetworkMigration `json:"migration,omitempty"`
-}
-
-// NetworkMigration represents the cluster network configuration.
-type NetworkMigration struct {
-	// networkType is the target type of network migration
-	// The supported values are OpenShiftSDN, OVNKubernetes
-	NetworkType NetworkType `json:"networkType"`
 }
 
 // ClusterNetworkEntry is a subnet from which to allocate PodIPs. A network of size
@@ -269,10 +251,8 @@ type OpenShiftSDNConfig struct {
 	// +optional
 	MTU *uint32 `json:"mtu,omitempty"`
 
-	// useExternalOpenvswitch used to control whether the operator would deploy an OVS
-	// DaemonSet itself or expect someone else to start OVS. As of 4.6, OVS is always
-	// run as a system service, and this flag is ignored.
-	// DEPRECATED: non-functional as of 4.6
+	// useExternalOpenvswitch tells the operator not to install openvswitch, because
+	// it will be provided separately. If set, you must provide it yourself.
 	// +optional
 	UseExternalOpenvswitch *bool `json:"useExternalOpenvswitch,omitempty"`
 
@@ -338,14 +318,6 @@ type KuryrConfig struct {
 	// +kubebuilder:validation:Minimum=0
 	// +optional
 	PoolBatchPorts *uint `json:"poolBatchPorts,omitempty"`
-
-	// mtu is the MTU that Kuryr should use when creating pod networks in Neutron.
-	// The value has to be lower or equal to the MTU of the nodes network and Neutron has
-	// to allow creation of tenant networks with such MTU. If unset Pod networks will be
-	// created with the same MTU as the nodes network has.
-	// +kubebuilder:validation:Minimum=0
-	// +optional
-	MTU *uint32 `json:"mtu,omitempty"`
 }
 
 // ovnKubernetesConfig contains the configuration parameters for networks
@@ -402,27 +374,24 @@ type ExportNetworkFlows struct {
 
 type NetFlowConfig struct {
 	// netFlow defines the NetFlow collectors that will consume the flow data exported from OVS.
-	// It is a list of strings formatted as ip:port with a maximum of ten items
+	// It is a list of strings formatted as ip:port
 	// +kubebuilder:validation:MinItems=1
-	// +kubebuilder:validation:MaxItems=10
 	Collectors []IPPort `json:"collectors,omitempty"`
 }
 
 type SFlowConfig struct {
-	// sFlowCollectors is list of strings formatted as ip:port with a maximum of ten items
+	// sFlowCollectors is list of strings formatted as ip:port
 	// +kubebuilder:validation:MinItems=1
-	// +kubebuilder:validation:MaxItems=10
 	Collectors []IPPort `json:"collectors,omitempty"`
 }
 
 type IPFIXConfig struct {
-	// ipfixCollectors is list of strings formatted as ip:port with a maximum of ten items
+	// ipfixCollectors is list of strings formatted as ip:port
 	// +kubebuilder:validation:MinItems=1
-	// +kubebuilder:validation:MaxItems=10
 	Collectors []IPPort `json:"collectors,omitempty"`
 }
 
-// +kubebuilder:validation:Pattern=`^(([0-9]|[0-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[0-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5]):([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$`
+// +kubebuilder:validation:Pattern=`^(([0-9]|[0-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[0-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5]):[0-9]+$`
 type IPPort string
 
 type PolicyAuditConfig struct {

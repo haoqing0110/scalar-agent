@@ -8,11 +8,11 @@ import (
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
 	"github.com/openshift/library-go/pkg/controller/factory"
 	"github.com/spf13/pflag"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/klog/v2"
 	clusterv1client "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	clusterv1informers "open-cluster-management.io/api/client/cluster/informers/externalversions"
-	"open-cluster-management.io/score-agent/pkg/features"
 	"open-cluster-management.io/score-agent/pkg/spoke/managedclusterscore"
 )
 
@@ -84,9 +84,10 @@ func (o *SpokeAgentOptions) RunSpokeAgent(ctx context.Context, controllerContext
 
 	if err := o.Validate(); err != nil {
 		klog.Fatal(err)
-	}*/
+	}
 
 	klog.Infof("Cluster name is %q and agent name is %q", o.ClusterName, o.AgentName)
+	*/
 
 	// create shared informer factory for spoke cluster
 	/*spokeKubeInformerFactory := informers.NewSharedInformerFactory(spokeKubeClient, 10*time.Minute)
@@ -206,7 +207,7 @@ func (o *SpokeAgentOptions) RunSpokeAgent(ctx context.Context, controllerContext
 
 	hubKubeInformerFactory := informers.NewSharedInformerFactory(hubKubeClient, 10*time.Minute)
 	addOnInformerFactory := addoninformers.NewSharedInformerFactoryWithOptions(
-		addOnClient, 10*time.Minute, addoninformers.WithNamespace(o.ClusterName))
+		addOnClient, 10*time.Minute, addoninformers.WithNamespace(o.ClusterName))*/
 	// create a cluster informer factory with name field selector because we just need to handle the current spoke cluster
 	hubClusterInformerFactory := clusterv1informers.NewSharedInformerFactoryWithOptions(
 		hubClusterClient,
@@ -219,7 +220,7 @@ func (o *SpokeAgentOptions) RunSpokeAgent(ctx context.Context, controllerContext
 	controllerContext.EventRecorder.Event("HubClientConfigReady", "Client config for hub is ready.")
 
 	// create a kubeconfig with references to the key/cert files in the same secret
-	kubeconfig := clientcert.BuildKubeconfig(hubClientConfig, clientcert.TLSCertFile, clientcert.TLSKeyFile)
+	/*kubeconfig := clientcert.BuildKubeconfig(hubClientConfig, clientcert.TLSCertFile, clientcert.TLSKeyFile)
 	kubeconfigData, err := clientcmd.Write(kubeconfig)
 	if err != nil {
 		return err
@@ -272,17 +273,14 @@ func (o *SpokeAgentOptions) RunSpokeAgent(ctx context.Context, controllerContext
 	spokeClusterInformerFactory := clusterv1informers.NewSharedInformerFactory(spokeClusterClient, 10*time.Minute)
 
 	var managedClusterClaimController factory.Controller
-	if features.DefaultMutableFeatureGate.Enabled(features.ClusterClaim) {
-		// create managedClusterClaimController to sync cluster claims
-		managedClusterClaimController = managedclusterscore.NewManagedClusterScoreController(
-			o.ClusterName,
-			o.MaxCustomClusterClaims,
-			hubClusterClient,
-			//			hubClusterInformerFactory.Cluster().V1().ManagedClusters(),
-			spokeClusterInformerFactory.Cluster().V1alpha1().ClusterClaims(),
-			controllerContext.EventRecorder,
-		)
-	}
+	// create managedClusterClaimController to sync cluster claims
+	managedClusterClaimController = managedclusterscore.NewManagedClusterScoreController(
+		o.ClusterName,
+		hubClusterClient,
+		hubClusterInformerFactory.Cluster().V1().ManagedClusters(),
+		spokeClusterInformerFactory.Cluster().V1alpha1().ManagedClusterScores(),
+		controllerContext.EventRecorder,
+	)
 
 	/*var addOnLeaseController factory.Controller
 	var addOnRegistrationController factory.Controller
@@ -336,7 +334,7 @@ func (o *SpokeAgentOptions) RunSpokeAgent(ctx context.Context, controllerContext
 
 // AddFlags registers flags for Agent
 func (o *SpokeAgentOptions) AddFlags(fs *pflag.FlagSet) {
-	features.DefaultMutableFeatureGate.AddFlag(fs)
+	//	features.DefaultMutableFeatureGate.AddFlag(fs)
 	fs.StringVar(&o.ClusterName, "cluster-name", o.ClusterName,
 		"If non-empty, will use as cluster name instead of generated random name.")
 	fs.StringVar(&o.BootstrapKubeconfig, "bootstrap-kubeconfig", o.BootstrapKubeconfig,

@@ -11,9 +11,6 @@ import (
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Console provides a means to configure an operator to manage the console.
-//
-// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
-// +openshift:compatibility-gen:level=1
 type Console struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -43,7 +40,6 @@ type ConsoleSpec struct {
 	// The default console route will be maintained to reserve the default hostname
 	// for console if the custom route is removed.
 	// If not specified, default route will be used.
-	// DEPRECATED
 	// +optional
 	Route ConsoleConfigRoute `json:"route"`
 	// plugins defines a list of enabled console plugin names.
@@ -52,7 +48,6 @@ type ConsoleSpec struct {
 }
 
 // ConsoleConfigRoute holds information on external route access to console.
-// DEPRECATED
 type ConsoleConfigRoute struct {
 	// hostname is the desired custom domain under which console will be available.
 	Hostname string `json:"hostname"`
@@ -124,14 +119,6 @@ type ConsoleCustomization struct {
 	// +kubebuilder:validation:Optional
 	// +optional
 	ProjectAccess ProjectAccess `json:"projectAccess,omitempty"`
-	// quickStarts allows customization of available ConsoleQuickStart resources in console.
-	// +kubebuilder:validation:Optional
-	// +optional
-	QuickStarts QuickStarts `json:"quickStarts,omitempty"`
-	// addPage allows customizing actions on the Add page in developer perspective.
-	// +kubebuilder:validation:Optional
-	// +optional
-	AddPage AddPage `json:"addPage,omitempty"`
 }
 
 // ProjectAccess contains options for project access roles
@@ -184,24 +171,6 @@ type DeveloperConsoleCatalogCategory struct {
 	Subcategories []DeveloperConsoleCatalogCategoryMeta `json:"subcategories,omitempty"`
 }
 
-// QuickStarts allow cluster admins to customize available ConsoleQuickStart resources.
-type QuickStarts struct {
-	// disabled is a list of ConsoleQuickStart resource names that are not shown to users.
-	// +kubebuilder:validation:Optional
-	// +optional
-	Disabled []string `json:"disabled,omitempty"`
-}
-
-// AddPage allows customizing actions on the Add page in developer perspective.
-type AddPage struct {
-	// disabledActions is a list of actions that are not shown to users.
-	// Each action in the list is represented by its ID.
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:MinItems=1
-	// +optional
-	DisabledActions []string `json:"disabledActions,omitempty"`
-}
-
 // Brand is a specific supported brand within the console.
 // +kubebuilder:validation:Pattern=`^$|^(ocp|origin|okd|dedicated|online|azure)$`
 type Brand string
@@ -223,8 +192,6 @@ const (
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
-// +openshift:compatibility-gen:level=1
 type ConsoleList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata"`
