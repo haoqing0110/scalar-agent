@@ -1,0 +1,42 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: spoke-score-agent
+  labels:
+    app: spoke-score-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spoke-score-agent
+  template:
+    metadata:
+      labels:
+        app: spoke-score-agent
+    spec:
+      serviceAccountName: spoke-score-agent-sa
+      containers:
+      - name: spoke-score-agent
+        image: quay.io/haoqing/score-agent:latest
+        imagePullPolicy: Always
+        args:
+          - "/scoreagent"
+          - "agent"
+          - "--cluster-name=cluster1"
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+          privileged: false
+          runAsNonRoot: true
+        volumeMounts:
+        - name: hub-kubeconfig
+          mountPath: "/spoke/hub-kubeconfig"
+      volumes:
+      - name: bootstrap-secret
+        secret:
+          secretName: bootstrap-secret
+      - name: hub-kubeconfig
+        emptyDir:
+          medium: Memory

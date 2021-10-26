@@ -11,6 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/klog/v2"
 	clusterv1client "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	clusterv1informers "open-cluster-management.io/api/client/cluster/informers/externalversions"
 	"open-cluster-management.io/score-agent/pkg/spoke/managedclusterscore"
@@ -72,6 +73,7 @@ func NewSpokeAgentOptions() *SpokeAgentOptions {
 // create a valid hub kubeconfig. Once the hub kubeconfig is valid, the
 // temporary controller is stopped and the main controllers are started.
 func (o *SpokeAgentOptions) RunSpokeAgent(ctx context.Context, controllerContext *controllercmd.ControllerContext) error {
+	klog.Info("Start running spoke agent")
 	// create kube client
 	/*spokeKubeClient, err := kubernetes.NewForConfig(controllerContext.KubeConfig)
 	if err != nil {
@@ -266,19 +268,20 @@ func (o *SpokeAgentOptions) RunSpokeAgent(ctx context.Context, controllerContext
 		o.ClusterHealthCheckPeriod,
 		controllerContext.EventRecorder,
 	)*/
-	spokeClusterClient, err := clusterv1client.NewForConfig(controllerContext.KubeConfig)
+	/*spokeClusterClient, err := clusterv1client.NewForConfig(controllerContext.KubeConfig)
 	if err != nil {
 		return err
 	}
 	spokeClusterInformerFactory := clusterv1informers.NewSharedInformerFactory(spokeClusterClient, 10*time.Minute)
+	*/
 
-	var managedClusterClaimController factory.Controller
+	var managedClusterScoreController factory.Controller
 	// create managedClusterClaimController to sync cluster claims
-	managedClusterClaimController = managedclusterscore.NewManagedClusterScoreController(
+	managedClusterScoreController = managedclusterscore.NewManagedClusterScoreController(
 		o.ClusterName,
 		hubClusterClient,
 		hubClusterInformerFactory.Cluster().V1().ManagedClusters(),
-		spokeClusterInformerFactory.Cluster().V1alpha1().ManagedClusterScores(),
+		hubClusterInformerFactory.Cluster().V1alpha1().ManagedClusterScores(),
 		controllerContext.EventRecorder,
 	)
 
@@ -326,7 +329,7 @@ func (o *SpokeAgentOptions) RunSpokeAgent(ctx context.Context, controllerContext
 		go addOnRegistrationController.Run(ctx, 1)
 	}
 	*/
-	go managedClusterClaimController.Run(ctx, 1)
+	go managedClusterScoreController.Run(ctx, 1)
 
 	<-ctx.Done()
 	return nil

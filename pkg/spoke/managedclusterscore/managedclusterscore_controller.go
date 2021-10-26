@@ -72,6 +72,7 @@ func (c managedClusterScoreController) sync(ctx context.Context, syncCtx factory
 
 // TODO
 func (c managedClusterScoreController) updateScore(ctx context.Context, syncCtx factory.SyncContext) error {
+	klog.Info("Start updating spoke score")
 	// update the status of the managed cluster score
 	score := (int64)(100)
 	updateStatusFuncs := []helpers.UpdateManagedClusterScoreStatusFunc{updateClusterScoresFn(clusterv1alpha1.ManagedClusterScoreStatus{

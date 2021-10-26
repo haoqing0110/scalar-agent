@@ -21,3 +21,28 @@ KUSTOMIZE?=$(PWD)/$(PERMANENT_TMP_GOPATH)/bin/kustomize
 KUSTOMIZE_VERSION?=v3.5.4
 KUSTOMIZE_ARCHIVE_NAME?=kustomize_$(KUSTOMIZE_VERSION)_$(GOHOSTOS)_$(GOHOSTARCH).tar.gz
 kustomize_dir:=$(dir $(KUSTOMIZE))
+
+ensure-kustomize:
+ifeq "" "$(wildcard $(KUSTOMIZE))"
+	$(info Installing kustomize into '$(KUSTOMIZE)')
+	mkdir -p '$(kustomize_dir)'
+	curl -s -f -L https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F$(KUSTOMIZE_VERSION)/$(KUSTOMIZE_ARCHIVE_NAME) -o '$(kustomize_dir)$(KUSTOMIZE_ARCHIVE_NAME)'
+	tar -C '$(kustomize_dir)' -zvxf '$(kustomize_dir)$(KUSTOMIZE_ARCHIVE_NAME)'
+	chmod +x '$(KUSTOMIZE)';
+else
+	$(info Using existing kustomize from "$(KUSTOMIZE)")
+endif
+
+deploy: deploy-spoke
+
+deploy-spoke: deploy-score-agent
+
+deploy-score-agent: ensure-kustomize
+	$(KUSTOMIZE) build deploy/spoke | $(KUBECTL) apply -f -
+
+undeploy: undeploy-spoke
+
+undeploy-spoke: undeploy-score-agent
+
+undeploy-score-agent:
+	$(KUSTOMIZE) build deploy/spoke | $(KUBECTL) delete -f -
