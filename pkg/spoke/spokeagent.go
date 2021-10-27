@@ -93,7 +93,6 @@ func (o *SpokeAgentOptions) RunSpokeAgent(ctx context.Context, controllerContext
 
 	// create shared informer factory for spoke cluster
 	/*spokeKubeInformerFactory := informers.NewSharedInformerFactory(spokeKubeClient, 10*time.Minute)
-	namespacedSpokeKubeInformerFactory := informers.NewSharedInformerFactoryWithOptions(spokeKubeClient, 10*time.Minute, informers.WithNamespace(o.ComponentNamespace))
 
 	// get spoke cluster CA bundle
 	spokeClusterCABundle, err := o.getSpokeClusterCABundle(controllerContext.KubeConfig)
@@ -218,6 +217,11 @@ func (o *SpokeAgentOptions) RunSpokeAgent(ctx context.Context, controllerContext
 			listOptions.FieldSelector = fields.OneTermEqualSelector("metadata.name", o.ClusterName).String()
 		}),
 	)
+	hubClusterNamespaceInformerFactory := clusterv1informers.NewSharedInformerFactoryWithOptions(
+		hubClusterClient,
+		10*time.Minute,
+		clusterv1informers.WithNamespace(o.ClusterName),
+	)
 
 	controllerContext.EventRecorder.Event("HubClientConfigReady", "Client config for hub is ready.")
 
@@ -281,7 +285,7 @@ func (o *SpokeAgentOptions) RunSpokeAgent(ctx context.Context, controllerContext
 		o.ClusterName,
 		hubClusterClient,
 		hubClusterInformerFactory.Cluster().V1().ManagedClusters(),
-		hubClusterInformerFactory.Cluster().V1alpha1().ManagedClusterScores(),
+		hubClusterNamespaceInformerFactory.Cluster().V1alpha1().ManagedClusterScores(),
 		controllerContext.EventRecorder,
 	)
 
@@ -329,6 +333,7 @@ func (o *SpokeAgentOptions) RunSpokeAgent(ctx context.Context, controllerContext
 	}
 	*/
 	go hubClusterInformerFactory.Start(ctx.Done())
+	go hubClusterNamespaceInformerFactory.Start(ctx.Done())
 	go managedClusterScoreController.Run(ctx, 1)
 
 	<-ctx.Done()
