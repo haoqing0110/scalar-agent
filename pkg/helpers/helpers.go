@@ -21,7 +21,7 @@ func UpdateManagedClusterScoreStatus(
 	var updatedManagedClusterScoreStatus *clusterv1alpha1.ManagedClusterScoreStatus
 
 	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-		managedClusterScore, err := client.ClusterV1alpha1().ManagedClusterScores(spokeClusterName).Get(ctx, spokeClusterName, metav1.GetOptions{})
+		managedClusterScore, err := client.ClusterV1alpha1().ManagedClusterScores(spokeClusterName).Get(ctx, spokeClusterName+"-balance", metav1.GetOptions{})
 		if err != nil {
 			return err
 		}

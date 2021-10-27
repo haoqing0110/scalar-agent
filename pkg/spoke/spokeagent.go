@@ -311,7 +311,6 @@ func (o *SpokeAgentOptions) RunSpokeAgent(ctx context.Context, controllerContext
 	}*/
 
 	/*go hubKubeInformerFactory.Start(ctx.Done())
-	go hubClusterInformerFactory.Start(ctx.Done())
 	go spokeKubeInformerFactory.Start(ctx.Done())
 	go namespacedSpokeKubeInformerFactory.Start(ctx.Done())
 	go spokeClusterInformerFactory.Start(ctx.Done())
@@ -329,6 +328,7 @@ func (o *SpokeAgentOptions) RunSpokeAgent(ctx context.Context, controllerContext
 		go addOnRegistrationController.Run(ctx, 1)
 	}
 	*/
+	go hubClusterInformerFactory.Start(ctx.Done())
 	go managedClusterScoreController.Run(ctx, 1)
 
 	<-ctx.Done()

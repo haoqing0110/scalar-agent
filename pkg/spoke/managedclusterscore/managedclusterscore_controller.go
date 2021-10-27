@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	clientset "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	clusterv1informer "open-cluster-management.io/api/client/cluster/informers/externalversions/cluster/v1"
@@ -35,27 +34,29 @@ func NewManagedClusterScoreController(
 	clusterName string,
 	hubClusterClient clientset.Interface,
 	hubManagedClusterInformer clusterv1informer.ManagedClusterInformer,
-	scoreInformer clusterv1alpha1informer.ManagedClusterScoreInformer,
+	hubManagedClusterScoreInformer clusterv1alpha1informer.ManagedClusterScoreInformer,
 	recorder events.Recorder) factory.Controller {
 	c := &managedClusterScoreController{
 		clusterName:      clusterName,
 		hubClusterClient: hubClusterClient,
 		hubClusterLister: hubManagedClusterInformer.Lister(),
-		scoreLister:      scoreInformer.Lister(),
+		scoreLister:      hubManagedClusterScoreInformer.Lister(),
 	}
 
 	return factory.New().
-		WithInformers(scoreInformer.Informer()).
-		WithInformersQueueKeyFunc(func(obj runtime.Object) string {
-			accessor, _ := meta.Accessor(obj)
-			return accessor.GetName()
-		}, hubManagedClusterInformer.Informer()).
+		WithInformers(hubManagedClusterScoreInformer.Informer()).
+		/*		WithInformersQueueKeyFunc(func(obj runtime.Object) string {
+					accessor, _ := meta.Accessor(obj)
+					return accessor.GetName()
+				}, hubManagedClusterInformer.Informer()).
+		*/
 		WithSync(c.sync).
-		ToController("ClusterClaimController", recorder)
+		ToController("NewManagedClusterScoreController", recorder)
 }
 
 // sync maintains the cluster claims in status of the managed cluster on hub once it joins the hub.
-func (c managedClusterScoreController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
+func (c *managedClusterScoreController) sync(ctx context.Context, syncCtx factory.SyncContext) error {
+	klog.Info("HQ : Start syncing spoke score")
 	managedCluster, err := c.hubClusterLister.Get(c.clusterName)
 	if err != nil {
 		return fmt.Errorf("unable to get managed cluster with name %q from hub: %w", c.clusterName, err)
@@ -71,8 +72,8 @@ func (c managedClusterScoreController) sync(ctx context.Context, syncCtx factory
 }
 
 // TODO
-func (c managedClusterScoreController) updateScore(ctx context.Context, syncCtx factory.SyncContext) error {
-	klog.Info("Start updating spoke score")
+func (c *managedClusterScoreController) updateScore(ctx context.Context, syncCtx factory.SyncContext) error {
+	klog.Info("HQ : Start updating spoke score")
 	// update the status of the managed cluster score
 	score := (int64)(100)
 	updateStatusFuncs := []helpers.UpdateManagedClusterScoreStatusFunc{updateClusterScoresFn(clusterv1alpha1.ManagedClusterScoreStatus{
