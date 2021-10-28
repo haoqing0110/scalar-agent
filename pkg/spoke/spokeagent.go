@@ -74,115 +74,6 @@ func NewSpokeAgentOptions() *SpokeAgentOptions {
 // temporary controller is stopped and the main controllers are started.
 func (o *SpokeAgentOptions) RunSpokeAgent(ctx context.Context, controllerContext *controllercmd.ControllerContext) error {
 	klog.Info("Start running spoke agent")
-	// create kube client
-	/*spokeKubeClient, err := kubernetes.NewForConfig(controllerContext.KubeConfig)
-	if err != nil {
-		return err
-	}
-
-	if err := o.Complete(spokeKubeClient.CoreV1(), ctx, controllerContext.EventRecorder); err != nil {
-		klog.Fatal(err)
-	}
-
-	if err := o.Validate(); err != nil {
-		klog.Fatal(err)
-	}
-
-	klog.Infof("Cluster name is %q and agent name is %q", o.ClusterName, o.AgentName)
-	*/
-
-	// create shared informer factory for spoke cluster
-	/*spokeKubeInformerFactory := informers.NewSharedInformerFactory(spokeKubeClient, 10*time.Minute)
-
-	// get spoke cluster CA bundle
-	spokeClusterCABundle, err := o.getSpokeClusterCABundle(controllerContext.KubeConfig)
-	if err != nil {
-		return err
-	}
-
-	// load bootstrap client config and create bootstrap clients
-	bootstrapClientConfig, err := clientcmd.BuildConfigFromFlags("", o.BootstrapKubeconfig)
-	if err != nil {
-		return fmt.Errorf("unable to load bootstrap kubeconfig from file %q: %w", o.BootstrapKubeconfig, err)
-	}
-	bootstrapKubeClient, err := kubernetes.NewForConfig(bootstrapClientConfig)
-	if err != nil {
-		return err
-	}
-	bootstrapClusterClient, err := clusterv1client.NewForConfig(bootstrapClientConfig)
-	if err != nil {
-		return err
-	}
-
-	// start a SpokeClusterCreatingController to make sure there is a spoke cluster on hub cluster
-	spokeClusterCreatingController := managedcluster.NewManagedClusterCreatingController(
-		o.ClusterName, o.SpokeExternalServerURLs,
-		spokeClusterCABundle,
-		bootstrapClusterClient,
-		controllerContext.EventRecorder,
-	)
-	go spokeClusterCreatingController.Run(ctx, 1)
-
-	/*hubKubeconfigSecretController := managedcluster.NewHubKubeconfigSecretController(
-		o.HubKubeconfigDir, o.ComponentNamespace, o.HubKubeconfigSecret,
-		spokeKubeClient.CoreV1(),
-		namespacedSpokeKubeInformerFactory.Core().V1().Secrets(),
-		controllerContext.EventRecorder,
-	)
-	go hubKubeconfigSecretController.Run(ctx, 1)*/
-
-	// check if there already exists a valid client config for hub
-	/*ok, err := o.hasValidHubClientConfig()
-	if err != nil {
-		return err
-	} */
-
-	// create and start a ClientCertForHubController for spoke agent bootstrap to deal with scenario #1 and #4.
-	// Running the bootstrap ClientCertForHubController is optional. If always run it no matter if there already
-	// exists a valid client config for hub or not, the controller will be started and then stopped immediately
-	// in scenario #2 and #3, which results in an error message in log: 'Observed a panic: timeout waiting for
-	// informer cache'
-	/*if !ok {
-		// create a ClientCertForHubController for spoke agent bootstrap
-		bootstrapInformerFactory := informers.NewSharedInformerFactory(bootstrapKubeClient, 10*time.Minute)
-
-		// create a kubeconfig with references to the key/cert files in the same secret
-		kubeconfig := clientcert.BuildKubeconfig(bootstrapClientConfig, clientcert.TLSCertFile, clientcert.TLSKeyFile)
-		kubeconfigData, err := clientcmd.Write(kubeconfig)
-		if err != nil {
-			return err
-		}
-
-		controllerName := fmt.Sprintf("BootstrapClientCertController@cluster:%s", o.ClusterName)
-		clientCertForHubController := managedcluster.NewClientCertForHubController(
-			o.ClusterName, o.AgentName, o.ComponentNamespace, o.HubKubeconfigSecret,
-			kubeconfigData,
-			spokeKubeClient.CoreV1(),
-			bootstrapKubeClient.CertificatesV1().CertificateSigningRequests(),
-			bootstrapInformerFactory.Certificates().V1().CertificateSigningRequests(),
-			namespacedSpokeKubeInformerFactory.Core().V1().Secrets(),
-			controllerContext.EventRecorder,
-			controllerName,
-		)
-
-		bootstrapCtx, stopBootstrap := context.WithCancel(ctx)
-
-		go bootstrapInformerFactory.Start(bootstrapCtx.Done())
-		go namespacedSpokeKubeInformerFactory.Start(bootstrapCtx.Done())
-
-		go clientCertForHubController.Run(bootstrapCtx, 1)
-
-		// wait for the hub client config is ready.
-		klog.Info("Waiting for hub client config and managed cluster to be ready")
-		if err := wait.PollImmediateInfinite(1*time.Second, o.hasValidHubClientConfig); err != nil {
-			// TODO need run the bootstrap CSR forever to re-establish the client-cert if it is ever lost.
-			stopBootstrap()
-			return err
-		}
-
-		// stop the clientCertForHubController for bootstrap once the hub client config is ready
-		stopBootstrap()
-	}*/
 
 	// create hub clients and shared informer factories from hub kube config
 	KubeconfigFile := "kubeconfig"
@@ -191,24 +82,11 @@ func (o *SpokeAgentOptions) RunSpokeAgent(ctx context.Context, controllerContext
 		return err
 	}
 
-	/*hubKubeClient, err := kubernetes.NewForConfig(hubClientConfig)
-	if err != nil {
-		return err
-	}*/
-
 	hubClusterClient, err := clusterv1client.NewForConfig(hubClientConfig)
 	if err != nil {
 		return err
 	}
 
-	/*addOnClient, err := addonclient.NewForConfig(hubClientConfig)
-	if err != nil {
-		return err
-	}
-
-	hubKubeInformerFactory := informers.NewSharedInformerFactory(hubKubeClient, 10*time.Minute)
-	addOnInformerFactory := addoninformers.NewSharedInformerFactoryWithOptions(
-		addOnClient, 10*time.Minute, addoninformers.WithNamespace(o.ClusterName))*/
 	// create a cluster informer factory with name field selector because we just need to handle the current spoke cluster
 	hubClusterInformerFactory := clusterv1informers.NewSharedInformerFactoryWithOptions(
 		hubClusterClient,
@@ -225,60 +103,6 @@ func (o *SpokeAgentOptions) RunSpokeAgent(ctx context.Context, controllerContext
 
 	controllerContext.EventRecorder.Event("HubClientConfigReady", "Client config for hub is ready.")
 
-	// create a kubeconfig with references to the key/cert files in the same secret
-	/*kubeconfig := clientcert.BuildKubeconfig(hubClientConfig, clientcert.TLSCertFile, clientcert.TLSKeyFile)
-	kubeconfigData, err := clientcmd.Write(kubeconfig)
-	if err != nil {
-		return err
-	}*/
-
-	// create another ClientCertForHubController for client certificate rotation
-	/*controllerName := fmt.Sprintf("ClientCertController@cluster:%s", o.ClusterName)
-	clientCertForHubController := managedcluster.NewClientCertForHubController(
-		o.ClusterName, o.AgentName, o.ComponentNamespace, o.HubKubeconfigSecret,
-		kubeconfigData,
-		spokeKubeClient.CoreV1(),
-		hubKubeClient.CertificatesV1().CertificateSigningRequests(),
-		hubKubeInformerFactory.Certificates().V1().CertificateSigningRequests(),
-		namespacedSpokeKubeInformerFactory.Core().V1().Secrets(),
-		controllerContext.EventRecorder,
-		controllerName,
-	)
-
-	// create ManagedClusterJoiningController to reconcile instances of ManagedCluster on the managed cluster
-	managedClusterJoiningController := managedcluster.NewManagedClusterJoiningController(
-		o.ClusterName,
-		hubClusterClient,
-		hubClusterInformerFactory.Cluster().V1().ManagedClusters(),
-		spokeKubeClient.Discovery(),
-		spokeKubeInformerFactory.Core().V1().Nodes(),
-		controllerContext.EventRecorder,
-	)
-
-	// create ManagedClusterLeaseController to keep the spoke cluster heartbeat
-	managedClusterLeaseController := managedcluster.NewManagedClusterLeaseController(
-		o.ClusterName,
-		hubKubeClient,
-		hubClusterInformerFactory.Cluster().V1().ManagedClusters(),
-		controllerContext.EventRecorder,
-	)
-
-	// create ManagedClusterHealthCheckController to check the spoke cluster health
-	managedClusterHealthCheckController := managedcluster.NewManagedClusterHealthCheckController(
-		o.ClusterName,
-		hubClusterClient,
-		hubClusterInformerFactory.Cluster().V1().ManagedClusters(),
-		spokeKubeClient.Discovery(),
-		o.ClusterHealthCheckPeriod,
-		controllerContext.EventRecorder,
-	)*/
-	/*spokeClusterClient, err := clusterv1client.NewForConfig(controllerContext.KubeConfig)
-	if err != nil {
-		return err
-	}
-	spokeClusterInformerFactory := clusterv1informers.NewSharedInformerFactory(spokeClusterClient, 10*time.Minute)
-	*/
-
 	var managedClusterScoreController factory.Controller
 	// create managedClusterClaimController to sync cluster claims
 	managedClusterScoreController = managedclusterscore.NewManagedClusterScoreController(
@@ -289,51 +113,9 @@ func (o *SpokeAgentOptions) RunSpokeAgent(ctx context.Context, controllerContext
 		controllerContext.EventRecorder,
 	)
 
-	/*var addOnLeaseController factory.Controller
-	var addOnRegistrationController factory.Controller
-	if features.DefaultMutableFeatureGate.Enabled(features.AddonManagement) {
-		addOnLeaseController = addon.NewManagedClusterAddOnLeaseController(
-			o.ClusterName,
-			addOnClient,
-			addOnInformerFactory.Addon().V1alpha1().ManagedClusterAddOns(),
-			hubKubeClient.CoordinationV1(),
-			spokeKubeClient.CoordinationV1(),
-			AddOnLeaseControllerSyncInterval, //TODO: this interval time should be allowed to change from outside
-			controllerContext.EventRecorder,
-		)
-
-		addOnRegistrationController = addon.NewAddOnRegistrationController(
-			o.ClusterName,
-			o.AgentName,
-			kubeconfigData,
-			spokeKubeClient,
-			hubKubeInformerFactory.Certificates().V1().CertificateSigningRequests(),
-			addOnInformerFactory.Addon().V1alpha1().ManagedClusterAddOns(),
-			hubKubeClient.CertificatesV1().CertificateSigningRequests(),
-			controllerContext.EventRecorder,
-		)
-	}*/
-
-	/*go hubKubeInformerFactory.Start(ctx.Done())
-	go spokeKubeInformerFactory.Start(ctx.Done())
-	go namespacedSpokeKubeInformerFactory.Start(ctx.Done())
-	go spokeClusterInformerFactory.Start(ctx.Done())
-	go addOnInformerFactory.Start(ctx.Done())
-
-	go clientCertForHubController.Run(ctx, 1)
-	go managedClusterJoiningController.Run(ctx, 1)
-	go managedClusterLeaseController.Run(ctx, 1)
-	go managedClusterHealthCheckController.Run(ctx, 1)
-	if features.DefaultMutableFeatureGate.Enabled(features.ClusterClaim) {
-		go managedClusterClaimController.Run(ctx, 1)
-	}
-	if features.DefaultMutableFeatureGate.Enabled(features.AddonManagement) {
-		go addOnLeaseController.Run(ctx, 1)
-		go addOnRegistrationController.Run(ctx, 1)
-	}
-	*/
 	go hubClusterInformerFactory.Start(ctx.Done())
 	go hubClusterNamespaceInformerFactory.Start(ctx.Done())
+
 	go managedClusterScoreController.Run(ctx, 1)
 
 	<-ctx.Done()
