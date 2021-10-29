@@ -2,7 +2,7 @@ module open-cluster-management.io/score-agent
 
 go 1.16
 
-replace open-cluster-management.io/api v0.0.0-20210916013819-2e58cdb938f9 => github.com/haoqing0110/api v0.0.0-20211021030927-af39ebdbc930
+replace open-cluster-management.io/api v0.0.0-20210916013819-2e58cdb938f9 => github.com/haoqing0110/api v0.0.0-20211029061752-bcd4aa6a346a
 
 require (
 	github.com/hashicorp/golang-lru v0.5.4 // indirect

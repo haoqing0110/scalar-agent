@@ -77,17 +77,27 @@ func (ClusterSelector) SwaggerDoc() map[string]string {
 }
 
 var map_ManagedClusterScore = map[string]string{
-	"status": "Status represents TODO",
+	"":       "ManagedClusterScore represents a scalable value (aka score) of one managed cluster. Each ManagedClusterScore only represents the score for one specific calculator type. ManagedClusterScore is a namesapce scoped resource.\n\nThe ManagedClusterScore name should follow the format {cluster name}-{calculator name}. For example, a calculator named ResourceAllocatableMemory can calculate the totale allocatable memory of one cluster. So for cluster1, the corresponding ManagedClusterScore name is cluster1-resourceallocatablememory.",
+	"status": "Status represents the status of the ManagedClusterScore.",
 }
 
 func (ManagedClusterScore) SwaggerDoc() map[string]string {
 	return map_ManagedClusterScore
 }
 
+var map_ManagedClusterScoreCondition = map[string]string{
+	"":               "ManagedClusterScoreCondition represents the condition of ManagedClusterScore.",
+	"lastUpdateTime": "lastUpdateTime is the last time the statue score updated.",
+}
+
+func (ManagedClusterScoreCondition) SwaggerDoc() map[string]string {
+	return map_ManagedClusterScoreCondition
+}
+
 var map_ManagedClusterScoreList = map[string]string{
 	"":         "ManagedClusterScoreList is a collection of managed cluster score.",
 	"metadata": "Standard list metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-	"items":    "Items is a list of managed clusters.",
+	"items":    "Items is a list of managed clusters",
 }
 
 func (ManagedClusterScoreList) SwaggerDoc() map[string]string {
@@ -95,7 +105,8 @@ func (ManagedClusterScoreList) SwaggerDoc() map[string]string {
 }
 
 var map_ManagedClusterScoreStatus = map[string]string{
-	"conditions": "Conditions contains the different condition statuses for this managed cluster.",
+	"":           "ManagedClusterScoreStatus represents the current status of ManagedClusterScore.",
+	"conditions": "Conditions contains the different condition statuses for this managed cluster score.",
 	"score":      "Score contains a scalable value of this managed cluster.",
 }
 

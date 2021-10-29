@@ -3,6 +3,7 @@ package managedclusterscore
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -44,9 +45,9 @@ func NewManagedClusterScoreController(
 	}
 
 	return factory.New().
+		ResyncEvery(5*time.Minute).
 		WithInformers(hubManagedClusterScoreInformer.Informer()).
 		WithSync(c.sync).
-		ResyncEvery(5*time.Minute).
 		ToController("NewManagedClusterScoreController", recorder)
 }
 
@@ -65,9 +66,9 @@ func (c *managedClusterScoreController) sync(ctx context.Context, syncCtx factor
 	// each collector update score to corresponding CR.
 	collectors := []string{"resourceallocatablememory", "resourceallocatablecpu"}
 	for _, collector := range collectors {
-		score := (int64)(100)
+		score := int64(rand.Intn(100))
 		crName := c.clusterName + "-" + collector
-		if _, err := c.scoreLister.ManagedClusterScores(c.clusterName).Get(crName); err != nil {
+		if _, err := c.scoreLister.ManagedClusterScores(c.clusterName).Get(crName); err == nil {
 			if err := c.UpdateScore(ctx, syncCtx, crName, score); err != nil {
 				return err
 			}
@@ -83,11 +84,14 @@ func (c *managedClusterScoreController) UpdateScore(ctx context.Context, syncCtx
 		updateClusterScoresFn(clusterv1alpha1.ManagedClusterScoreStatus{
 			Score: score,
 		}),
-		UpdateManagedClusterScoreConditionFn(metav1.Condition{
-			Type:    "ManagedClusterScoreUpdated",
-			Status:  "True",
-			Reason:  "ManagedClusterScoreUpdated",
-			Message: "ManagedClusterScore updated successfully",
+		updateManagedClusterScoreConditionFn(clusterv1alpha1.ManagedClusterScoreCondition{
+			LastUpdateTime: metav1.NewTime(time.Now()),
+			Condition: metav1.Condition{
+				Type:    "ManagedClusterScoreUpdated",
+				Status:  "True",
+				Reason:  "ManagedClusterScoreUpdated",
+				Message: "ManagedClusterScore updated successfully",
+			},
 		}),
 	}
 
@@ -109,9 +113,48 @@ func updateClusterScoresFn(status clusterv1alpha1.ManagedClusterScoreStatus) hel
 	}
 }
 
-func UpdateManagedClusterScoreConditionFn(cond metav1.Condition) helpers.UpdateManagedClusterScoreStatusFunc {
+func updateManagedClusterScoreConditionFn(cond clusterv1alpha1.ManagedClusterScoreCondition) helpers.UpdateManagedClusterScoreStatusFunc {
 	return func(oldStatus *clusterv1alpha1.ManagedClusterScoreStatus) error {
-		meta.SetStatusCondition(&oldStatus.Conditions, cond)
+		setStatusCondition(&oldStatus.Conditions, cond)
 		return nil
 	}
+}
+
+func setStatusCondition(conditions *[]clusterv1alpha1.ManagedClusterScoreCondition, newCondition clusterv1alpha1.ManagedClusterScoreCondition) {
+	if conditions == nil {
+		return
+	}
+	existingCondition := findStatusCondition(*conditions, newCondition.Type)
+	if existingCondition == nil {
+		if newCondition.LastTransitionTime.IsZero() {
+			newCondition.LastTransitionTime = metav1.NewTime(time.Now())
+		}
+		*conditions = append(*conditions, newCondition)
+		return
+	}
+
+	if existingCondition.Status != newCondition.Status {
+		existingCondition.Status = newCondition.Status
+		if !newCondition.LastTransitionTime.IsZero() {
+			existingCondition.LastTransitionTime = newCondition.LastTransitionTime
+		} else {
+			existingCondition.LastTransitionTime = metav1.NewTime(time.Now())
+		}
+	}
+
+	existingCondition.LastUpdateTime = metav1.NewTime(time.Now())
+	existingCondition.Reason = newCondition.Reason
+	existingCondition.Message = newCondition.Message
+	existingCondition.ObservedGeneration = newCondition.ObservedGeneration
+}
+
+// FindStatusCondition finds the conditionType in conditions.
+func findStatusCondition(conditions []clusterv1alpha1.ManagedClusterScoreCondition, conditionType string) *clusterv1alpha1.ManagedClusterScoreCondition {
+	for i := range conditions {
+		if conditions[i].Type == conditionType {
+			return &conditions[i]
+		}
+	}
+
+	return nil
 }

@@ -15,6 +15,13 @@ spec:
     status: {}
   validation:
     openAPIV3Schema:
+      description: "ManagedClusterScore represents a scalable value (aka score) of
+        one managed cluster. Each ManagedClusterScore only represents the score for
+        one specific calculator type. ManagedClusterScore is a namesapce scoped resource.
+        \n The ManagedClusterScore name should follow the format {cluster name}-{calculator
+        name}. For example, a calculator named ResourceAllocatableMemory can calculate
+        the totale allocatable memory of one cluster. So for cluster1, the corresponding
+        ManagedClusterScore name is cluster1-resourceallocatablememory."
       type: object
       properties:
         apiVersion:
@@ -30,27 +37,20 @@ spec:
         metadata:
           type: object
         status:
-          description: Status represents TODO
+          description: Status represents the status of the ManagedClusterScore.
           type: object
           properties:
             conditions:
               description: Conditions contains the different condition statuses for
-                this managed cluster.
+                this managed cluster score.
               type: array
               items:
-                description: "Condition contains details for one aspect of the current
-                  state of this API Resource. --- This struct is intended for direct
-                  use as an array at the field path .status.conditions.  For example,
-                  type FooStatus struct{     // Represents the observations of a foo's
-                  current state.     // Known .status.conditions.type are: \"Available\",
-                  \"Progressing\", and \"Degraded\"     // +patchMergeKey=type     //
-                  +patchStrategy=merge     // +listType=map     // +listMapKey=type
-                  \    Conditions []metav1.Condition `json:\"conditions,omitempty\"
-                  patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"`
-                  \n     // other fields }"
+                description: ManagedClusterScoreCondition represents the condition
+                  of ManagedClusterScore.
                 type: object
                 required:
                 - lastTransitionTime
+                - lastUpdateTime
                 - message
                 - reason
                 - status
@@ -61,6 +61,11 @@ spec:
                       transitioned from one status to another. This should be when
                       the underlying condition changed.  If that is not known, then
                       using the time when the API field changed is acceptable.
+                    type: string
+                    format: date-time
+                  lastUpdateTime:
+                    description: lastUpdateTime is the last time the statue score
+                      updated.
                     type: string
                     format: date-time
                   message:
