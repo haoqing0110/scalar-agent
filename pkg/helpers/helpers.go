@@ -10,23 +10,23 @@ import (
 	clusterv1alpha1 "open-cluster-management.io/api/cluster/v1alpha1"
 )
 
-type UpdateManagedClusterScoreStatusFunc func(status *clusterv1alpha1.ManagedClusterScoreStatus) error
+type UpdateManagedClusterScalarStatusFunc func(status *clusterv1alpha1.ManagedClusterScalarStatus) error
 
-func UpdateManagedClusterScoreStatus(
+func UpdateManagedClusterScalarStatus(
 	ctx context.Context,
 	client clusterclientset.Interface,
 	spokeClusterName string,
 	crName string,
-	updateFuncs ...UpdateManagedClusterScoreStatusFunc) (*clusterv1alpha1.ManagedClusterScoreStatus, bool, error) {
+	updateFuncs ...UpdateManagedClusterScalarStatusFunc) (*clusterv1alpha1.ManagedClusterScalarStatus, bool, error) {
 	updated := false
-	var updatedManagedClusterScoreStatus *clusterv1alpha1.ManagedClusterScoreStatus
+	var updatedManagedClusterScalarStatus *clusterv1alpha1.ManagedClusterScalarStatus
 
 	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-		managedClusterScore, err := client.ClusterV1alpha1().ManagedClusterScores(spokeClusterName).Get(ctx, crName, metav1.GetOptions{})
+		managedClusterScalar, err := client.ClusterV1alpha1().ManagedClusterScalars(spokeClusterName).Get(ctx, crName, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
-		oldStatus := &managedClusterScore.Status
+		oldStatus := &managedClusterScalar.Status
 
 		newStatus := oldStatus.DeepCopy()
 		for _, update := range updateFuncs {
@@ -36,19 +36,19 @@ func UpdateManagedClusterScoreStatus(
 		}
 		if equality.Semantic.DeepEqual(oldStatus, newStatus) {
 			// We return the newStatus which is a deep copy of oldStatus but with all update funcs applied.
-			updatedManagedClusterScoreStatus = newStatus
+			updatedManagedClusterScalarStatus = newStatus
 			return nil
 		}
 
-		managedClusterScore.Status = *newStatus
-		updatedManagedClusterScore, err := client.ClusterV1alpha1().ManagedClusterScores(spokeClusterName).UpdateStatus(ctx, managedClusterScore, metav1.UpdateOptions{})
+		managedClusterScalar.Status = *newStatus
+		updatedManagedClusterScalar, err := client.ClusterV1alpha1().ManagedClusterScalars(spokeClusterName).UpdateStatus(ctx, managedClusterScalar, metav1.UpdateOptions{})
 		if err != nil {
 			return err
 		}
-		updatedManagedClusterScoreStatus = &updatedManagedClusterScore.Status
+		updatedManagedClusterScalarStatus = &updatedManagedClusterScalar.Status
 		updated = err == nil
 		return err
 	})
 
-	return updatedManagedClusterScoreStatus, updated, err
+	return updatedManagedClusterScalarStatus, updated, err
 }

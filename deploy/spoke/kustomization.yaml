@@ -34,8 +34,8 @@ resources:
 - ./deployment.yaml
 
 images:
-- name: quay.io/open-cluster-management/score-agent:latest
-  newName: quay.io/open-cluster-management/score-agent
+- name: quay.io/open-cluster-management/scalar-agent:latest
+  newName: quay.io/open-cluster-management/scalar-agent
   newTag: latest
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization

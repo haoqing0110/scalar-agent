@@ -13,7 +13,7 @@ include $(addprefix ./vendor/github.com/openshift/build-machinery-go/make/, \
 
 IMAGE_REGISTRY?=quay.io/open-cluster-management
 IMAGE_TAG?=latest
-IMAGE_NAME?=$(IMAGE_REGISTRY)/score-agent:$(IMAGE_TAG)
+IMAGE_NAME?=$(IMAGE_REGISTRY)/scalar-agent:$(IMAGE_TAG)
 KUBECONFIG ?= ./.kubeconfig
 KUBECTL?=kubectl
 PWD=$(shell pwd)
@@ -35,14 +35,17 @@ endif
 
 deploy: deploy-spoke
 
-deploy-spoke: deploy-score-agent
+deploy-spoke: deploy-scalar-agent
 
-deploy-score-agent: ensure-kustomize
+deploy-scalar-agent: ensure-kustomize
 	$(KUSTOMIZE) build deploy/spoke | $(KUBECTL) apply -f -
 
 undeploy: undeploy-spoke
 
-undeploy-spoke: undeploy-score-agent
+undeploy-spoke: undeploy-scalar-agent
 
-undeploy-score-agent:
+undeploy-scalar-agent:
 	$(KUSTOMIZE) build deploy/spoke | $(KUBECTL) delete -f -
+
+image:
+	docker build -t quay.io/haoqing/scalar-agent:latest .

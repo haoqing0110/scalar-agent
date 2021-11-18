@@ -424,48 +424,55 @@ type PlacementDecisionList struct {
 // +kubebuilder:resource:scope="Namespaced"
 // +kubebuilder:subresource:status
 
-// ManagedClusterScore represents a scalable value (aka score) of one managed cluster.
-// Each ManagedClusterScore only represents the score for one specific calculator type.
-// ManagedClusterScore is a namesapce scoped resource.
-//
-// The ManagedClusterScore name should follow the format {cluster name}-{calculator name}.
-// For example, a calculator named ResourceAllocatableMemory can calculate the totale allocatable memory
-// of one cluster.
-// So for cluster1, the corresponding ManagedClusterScore name is cluster1-resourceallocatablememory.
-type ManagedClusterScore struct {
+// ManagedClusterScalar represents a scalable value (aka score) of one managed cluster.
+// Each ManagedClusterScalar only represents the scalar value of one prioritizer.
+// ManagedClusterScalar is a namesapce scoped resource. The namespace of the resource is the cluster namespace.
+type ManagedClusterScalar struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// Status represents the status of the ManagedClusterScore.
-	// +optional
-	Status ManagedClusterScoreStatus `json:"status,omitempty"`
-}
-
-// ManagedClusterScoreStatus represents the current status of ManagedClusterScore.
-type ManagedClusterScoreStatus struct {
-	// Conditions contains the different condition statuses for this managed cluster score.
-	Conditions []ManagedClusterScoreCondition `json:"conditions"`
-
-	// Score contains a scalable value of this managed cluster.
-	Score int64 `json:"score,omitempty"`
-}
-
-// ManagedClusterScoreCondition represents the condition of ManagedClusterScore.
-type ManagedClusterScoreCondition struct {
-	metav1.Condition `json:",inline"`
-
-	// lastUpdateTime is the last time the statue score updated.
+	// Spec defines the attributes of the ManagedClusterScalar.
+	// +kubebuilder:validation:Required
 	// +required
+	Spec ManagedClusterScalarSpec `json:"spec"`
+
+	// Status represents the status of the ManagedClusterScalar.
+	// +optional
+	Status ManagedClusterScalarStatus `json:"status,omitempty"`
+}
+
+// ManagedClusterScalarSpec defines the attributes of the ManagedClusterScalar.
+type ManagedClusterScalarSpec struct {
+	// PrioritizerName will be the prioritizer name used in placement.
+	// +kubebuilder:validation:Required
+	// +required
+	PrioritizerName string `json:"prioritizerName,omitempty"`
+}
+
+//ManagedClusterScalarStatus represents the current status of ManagedClusterScalar.
+type ManagedClusterScalarStatus struct {
+	// Conditions contain the different condition statuses for this managed cluster scalar.
+	// +optional
+	Conditions []metav1.Condition `json:"conditions"`
+
+	// Scalar contains a scalable value of this managed cluster.
+	// +optional
+	Scalar int64 `json:"scalar,omitempty"`
+
+	// ValidUntil defines the time this scalar is valid.
+	// After this time, the scalar is considered to be invalid by placement. nil means never expire.
+	// The controller ownning this resource should keep the scalar up-to-date.
+	// +optional
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Type=string
 	// +kubebuilder:validation:Format=date-time
-	LastUpdateTime metav1.Time `json:"lastUpdateTime" protobuf:"bytes,4,opt,name=lastTransitionTime"`
+	ValidUntil *metav1.Time `json:"validUntil" protobuf:"bytes,4,opt,name=lastTransitionTime"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// ManagedClusterScoreList is a collection of managed cluster score.
-type ManagedClusterScoreList struct {
+// ManagedClusterScalarList is a collection of managed cluster scalar.
+type ManagedClusterScalarList struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard list metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds
@@ -473,5 +480,5 @@ type ManagedClusterScoreList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 
 	// Items is a list of managed clusters
-	Items []ManagedClusterScore `json:"items"`
+	Items []ManagedClusterScalar `json:"items"`
 }

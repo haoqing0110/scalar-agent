@@ -10,11 +10,12 @@ import (
 	"github.com/spf13/pflag"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
 	clusterv1client "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	clusterv1informers "open-cluster-management.io/api/client/cluster/informers/externalversions"
-	"open-cluster-management.io/score-agent/pkg/spoke/managedclusterscore"
+	managedclusterScalar "open-cluster-management.io/scalar-agent/pkg/spoke/managedclusterscalar"
 )
 
 const (
@@ -74,6 +75,10 @@ func NewSpokeAgentOptions() *SpokeAgentOptions {
 // temporary controller is stopped and the main controllers are started.
 func (o *SpokeAgentOptions) RunSpokeAgent(ctx context.Context, controllerContext *controllercmd.ControllerContext) error {
 	klog.Info("Start running spoke agent")
+	spokeKubeClient, err := kubernetes.NewForConfig(controllerContext.KubeConfig)
+	if err != nil {
+		return err
+	}
 
 	// create hub clients and shared informer factories from hub kube config
 	KubeconfigFile := "kubeconfig"
@@ -103,20 +108,21 @@ func (o *SpokeAgentOptions) RunSpokeAgent(ctx context.Context, controllerContext
 
 	controllerContext.EventRecorder.Event("HubClientConfigReady", "Client config for hub is ready.")
 
-	var managedClusterScoreController factory.Controller
+	var managedClusterScalarController factory.Controller
 	// create managedClusterClaimController to sync cluster claims
-	managedClusterScoreController = managedclusterscore.NewManagedClusterScoreController(
+	managedClusterScalarController = managedclusterScalar.NewManagedClusterScalarController(
 		o.ClusterName,
+		spokeKubeClient,
 		hubClusterClient,
 		hubClusterInformerFactory.Cluster().V1().ManagedClusters(),
-		hubClusterNamespaceInformerFactory.Cluster().V1alpha1().ManagedClusterScores(),
+		hubClusterNamespaceInformerFactory.Cluster().V1alpha1().ManagedClusterScalars(),
 		controllerContext.EventRecorder,
 	)
 
 	go hubClusterInformerFactory.Start(ctx.Done())
 	go hubClusterNamespaceInformerFactory.Start(ctx.Done())
 
-	go managedClusterScoreController.Run(ctx, 1)
+	go managedClusterScalarController.Run(ctx, 1)
 
 	<-ctx.Done()
 	return nil

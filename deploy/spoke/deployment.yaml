@@ -1,26 +1,26 @@
 kind: Deployment
 apiVersion: apps/v1
 metadata:
-  name: spoke-score-agent
+  name: spoke-scalar-agent
   labels:
-    app: spoke-score-agent
+    app: spoke-scalar-agent
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: spoke-score-agent
+      app: spoke-scalar-agent
   template:
     metadata:
       labels:
-        app: spoke-score-agent
+        app: spoke-scalar-agent
     spec:
-      serviceAccountName: spoke-score-agent-sa
+      serviceAccountName: spoke-scalar-agent-sa
       containers:
-      - name: spoke-score-agent
-        image: quay.io/haoqing/score-agent:latest
+      - name: spoke-scalar-agent
+        image: quay.io/haoqing/scalar-agent:latest
         imagePullPolicy: Always
         args:
-          - "/scoreagent"
+          - "/scalaragent"
           - "agent"
           - "--cluster-name=cluster1"
         securityContext:
